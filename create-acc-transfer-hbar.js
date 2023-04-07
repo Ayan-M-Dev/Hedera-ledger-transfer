@@ -1,4 +1,4 @@
-const { Client } = require("@hashgraph/sdk");
+const { Client, PrivateKey, AccountCreateTransaction, AccountBalanceQuery, Hbar, TransferTransaction } = require("@hashgraph/sdk");
 
 require("dotenv").config();
 
@@ -33,8 +33,17 @@ console.log("The new account ID is: " + newAccountId);
 console.log("The new account starting balance is: " + accountBalance.hbars.toTinybars() + " TINYBARs");
 
  // Part 6 - Transfer 100 TINYBARs from Hedera Testnet account to new account
+ const sendHbar = await new TransferTransaction()
+  .addHbarTransfer(myAccountId, Hbar.fromTinybars(-100)) // Sending account
+  .addHbarTransfer(newAccountId, Hbar.fromTinybars(100)) // Receiving account
+  .execute(client);
+
+const transactionReceipt = await sendHbar.getReceipt(client);
+console.log("Status of transfer transaction: " + transactionReceipt.status.toString());
 
  // Part 7 - Verify the new account's current balance
+ const newAccountBalance = await new AccountBalanceQuery().setAccountId(newAccountId).execute(client);
+ console.log("The new account current balance is: " + newAccountBalance.hbars.toTinybars() + " TINYBARs");
 };
 
 createAccTransferHbar();
