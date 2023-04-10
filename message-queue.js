@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Client, TopicCreateTransaction, TopicMessageQuery, TopicMessageSubmitTransaction } = require("@hashgraph/sdk");
+const { Client, TopicCreateTransaction, TopicMessageQuery, TopicMessageSubmitTransaction, PrivateKey, AccountCreateTransaction, Hbar } = require("@hashgraph/sdk");
 
 function delay(time) {
  return new Promise((resolve) => setTimeout(resolve, time));
@@ -34,9 +34,25 @@ async function createMessageQueue() {
   });
 
  // Part 3 - Submit messages to topic
- const newHCSMessage = await new TopicMessageSubmitTransaction().setTopicId(newTopicId).setMessage("Hedera rocks!").execute(client);
- const messageReceipt = await newHCSMessage.getReceipt(client);
- console.log(messageReceipt);
+ for (let i = 1; i <= 7; i++) {
+    const newAccountPrivateKey = PrivateKey.generateED25519();
+    const newAccountPublicKey = newAccountPrivateKey.publicKey;
+  
+    const newAccount = await new AccountCreateTransaction()
+     .setKey(newAccountPublicKey)
+     .setInitialBalance(Hbar.fromTinybars(10000000000))
+     .execute(client);
+  
+    const getReceipt = await newAccount.getReceipt(client);
+    const newAccountId = getReceipt.accountId;
+  
+    const newClient = Client.forTestnet();
+    newClient.setOperator(newAccountId, newAccountPrivateKey);
+    await new TopicMessageSubmitTransaction()
+     .setTopicId(newTopicId)
+     .setMessage(`User ${i} (${newAccountId}) has completed action no. ${i}`)
+     .execute(newClient);
+   }
 
 }
 
